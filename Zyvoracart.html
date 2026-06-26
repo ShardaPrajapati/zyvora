@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zyvora - My Cart & Orders</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+  :root{
+    --brand: #36e4db;
+    --brand-dark:#1fb8b0;
+    --bg-soft:#f7f7f7;
+  }
+  body{ background-color: var(--bg-soft); font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+
+  .navbar-brand{ font-weight: 700; font-size: 1.5rem; }
+  .navbar-brand span{ color: var(--brand); }
+
+  .page-tabs .nav-link{ font-weight: 600; color:#555; border-radius: 0; padding: 12px 18px; }
+  .page-tabs .nav-link.active{ color:#111; border-bottom: 3px solid var(--brand); background: transparent; }
+
+  /* ===== Cart Item Card ===== */
+  .cart-item{ border:none; border-radius: 10px; }
+  .cart-item img{ width: 90px; height: 90px; object-fit: cover; border-radius: 8px; }
+  .qty-box{ width: 110px; }
+  .qty-box button{ width: 32px; }
+  .price-new{ font-weight:700; }
+  .price-old{ text-decoration: line-through; color:#999; font-size:.85rem; }
+  .btn-remove{ color:#dc3545; background:none; border:none; font-size:.85rem; }
+  .btn-remove:hover{ text-decoration: underline; }
+
+  /* ===== Order Summary ===== */
+  .summary-card{ border-radius: 10px; border: none; }
+  .btn-place-order{ background: var(--brand); border-color: var(--brand); color:#fff; font-weight:600; }
+  .btn-place-order:hover{ background: var(--brand-dark); border-color: var(--brand-dark); color:#fff; }
+
+  /* ===== Order Card (My Orders tab) ===== */
+  .order-card{ border-radius: 10px; border:none; }
+  .order-card img{ width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+  .status-badge{ font-size:.75rem; padding: 4px 10px; border-radius: 20px; font-weight:600; }
+  .status-delivered{ background:#e6f7ed; color:#1c8a4b; }
+  .status-transit{ background:#fff4e0; color:#b9770e; }
+  .status-cancelled{ background:#fde8e8; color:#c0392b; }
+
+  /* ===== Tracking Stepper ===== */
+  .tracker{ display:flex; list-style:none; padding:0; margin: 25px 0; }
+  .tracker li{ flex:1; text-align:center; position: relative; }
+  .tracker li .dot{
+    width: 34px; height: 34px; border-radius:50%; background:#e0e0e0; color:#fff;
+    display:flex; align-items:center; justify-content:center; margin: 0 auto 8px; font-size:.95rem;
+    position: relative; z-index: 2;
+  }
+  .tracker li.done .dot{ background: var(--brand); }
+  .tracker li.active .dot{ background: var(--brand-dark); box-shadow: 0 0 0 4px rgba(54,228,219,.25); }
+  .tracker li:not(:last-child)::after{
+    content:""; position:absolute; top:17px; left:50%; width:100%; height:3px;
+    background:#e0e0e0; z-index:1;
+  }
+  .tracker li.done:not(:last-child)::after{ background: var(--brand); }
+  .tracker small{ display:block; font-size:.72rem; color:#777; }
+  .tracker .step-label{ font-size:.8rem; font-weight:600; }
+
+  /* ===== Return / Exchange ===== */
+  .return-options .form-check{ border:1px solid #e2e2e2; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; cursor:pointer; }
+  .return-options .form-check:hover{ border-color: var(--brand); }
+  .return-options .form-check-input:checked ~ .form-check-label{ color:#111; font-weight:600; }
+
+  .empty-state{ padding: 80px 0; text-align:center; color:#888; }
+</style>
+</head>
+<body>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top py-2">
+  <div class="container">
+    <a class="navbar-brand" href="zyvora.html">Zy<span>vora</span></a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <a href="#" class="text-dark"><i class="bi bi-bell fs-5"></i></a>
+      <a href="#" class="text-dark"><i class="bi bi-person-circle fs-5"></i></a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+
+  <!-- ============ PAGE TABS: Cart | My Orders ============ -->
+  <ul class="nav page-tabs border-bottom mb-4" id="pageTab" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="cart-tab" data-bs-toggle="tab" data-bs-target="#cartView" type="button">
+        <i class="bi bi-cart3 me-1"></i> My Cart <span class="badge bg-secondary" id="cartCountBadge">3</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersView" type="button">
+        <i class="bi bi-box-seam me-1"></i> My Orders
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ======================================================= -->
+    <!-- ===================== CART VIEW ====================== -->
+    <!-- ======================================================= -->
+    <div class="tab-pane fade show active" id="cartView" role="tabpanel">
+      <div class="row g-4">
+
+        <!-- ---- Cart items column ---- -->
+        <div class="col-lg-8">
+          <div id="cartItemsWrapper" class="d-flex flex-column gap-3">
+
+            <!-- Cart Item 1 -->
+            <div class="card cart-item shadow-sm p-3" data-price="1399" data-qty="1">
+              <div class="d-flex gap-3">
+                <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop" alt="Sneakers">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">Men's Running Sneakers</h6>
+                  <p class="text-secondary small mb-2">Size: 9 &nbsp;|&nbsp; Color: Black</p>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="input-group qty-box">
+                      <button class="btn btn-outline-secondary qty-minus" type="button">-</button>
+                      <input type="text" class="form-control text-center qty-value" value="1" readonly>
+                      <button class="btn btn-outline-secondary qty-plus" type="button">+</button>
+                    </div>
+                    <span class="price-new">₹<span class="line-total">1,399</span></span>
+                    <span class="price-old">₹1,999</span>
+                    <button class="btn-remove ms-auto"><i class="bi bi-trash3"></i> Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cart Item 2 -->
+            <div class="card cart-item shadow-sm p-3" data-price="2549" data-qty="1">
+              <div class="d-flex gap-3">
+                <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop" alt="Watch">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">Smart Fitness Watch</h6>
+                  <p class="text-secondary small mb-2">Color: Midnight Blue</p>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="input-group qty-box">
+                      <button class="btn btn-outline-secondary qty-minus" type="button">-</button>
+                      <input type="text" class="form-control text-center qty-value" value="1" readonly>
+                      <button class="btn btn-outline-secondary qty-plus" type="button">+</button>
+                    </div>
+                    <span class="price-new">₹<span class="line-total">2,549</span></span>
+                    <span class="price-old">₹2,999</span>
+                    <button class="btn-remove ms-auto"><i class="bi bi-trash3"></i> Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cart Item 3 -->
+            <div class="card cart-item shadow-sm p-3" data-price="1499" data-qty="1">
+              <div class="d-flex gap-3">
+                <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop" alt="Headphones">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">Wireless Headphones</h6>
+                  <p class="text-secondary small mb-2">Color: White</p>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="input-group qty-box">
+                      <button class="btn btn-outline-secondary qty-minus" type="button">-</button>
+                      <input type="text" class="form-control text-center qty-value" value="1" readonly>
+                      <button class="btn btn-outline-secondary qty-plus" type="button">+</button>
+                    </div>
+                    <span class="price-new">₹<span class="line-total">1,499</span></span>
+                    <span class="price-old">₹1,999</span>
+                    <button class="btn-remove ms-auto"><i class="bi bi-trash3"></i> Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Shown when all items are removed -->
+          <div class="empty-state d-none" id="emptyCartMsg">
+            <i class="bi bi-cart-x" style="font-size:3rem;"></i>
+            <p class="mt-2">Your cart is empty.</p>
+            <a href="zyvora.html" class="btn btn-place-order">Continue Shopping</a>
+          </div>
+        </div>
+
+        <!-- ---- Order summary column ---- -->
+        <div class="col-lg-4">
+          <div class="card summary-card shadow-sm p-4 sticky-top" style="top:90px;">
+            <h6 class="fw-bold mb-3">Order Summary</h6>
+            <div class="d-flex justify-content-between small mb-2">
+              <span>Price (<span id="summaryItemCount">3</span> items)</span>
+              <span>₹<span id="summarySubtotal">5,447</span></span>
+            </div>
+            <div class="d-flex justify-content-between small mb-2">
+              <span>Discount</span>
+              <span class="text-success">- ₹1,053</span>
+            </div>
+            <div class="d-flex justify-content-between small mb-2">
+              <span>Delivery Charges</span>
+              <span class="text-success">FREE</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between fw-bold mb-3">
+              <span>Total Amount</span>
+              <span>₹<span id="summaryTotal">5,447</span></span>
+            </div>
+            <button class="btn btn-place-order w-100 py-2">Place Order</button>
+            <p class="text-secondary small text-center mt-3 mb-0"><i class="bi bi-shield-check"></i> Safe and Secure Payments</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ==================== MY ORDERS VIEW ==================== -->
+    <!-- ======================================================= -->
+    <div class="tab-pane fade" id="ordersView" role="tabpanel">
+
+      <!-- ---- Order 1: In transit, trackable ---- -->
+      <div class="card order-card shadow-sm p-3 mb-3">
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <img src="https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=150&h=150&fit=crop" alt="Backpack">
+          <div class="flex-grow-1">
+            <h6 class="mb-1">Travel Backpack</h6>
+            <p class="text-secondary small mb-1">Order #ZY10293 &nbsp;|&nbsp; Placed on 18 Jun 2026</p>
+            <span class="status-badge status-transit">Out for Delivery</span>
+          </div>
+          <button class="btn btn-outline-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#track1">
+            Track Order <i class="bi bi-chevron-down"></i>
+          </button>
+        </div>
+
+        <div class="collapse mt-3" id="track1">
+          <hr>
+          <ul class="tracker">
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Ordered</span><small>18 Jun</small></li>
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Shipped</span><small>19 Jun</small></li>
+            <li class="active"><div class="dot"><i class="bi bi-truck"></i></div><span class="step-label">Out for Delivery</span><small>23 Jun</small></li>
+            <li><div class="dot"><i class="bi bi-house-door"></i></div><span class="step-label">Delivered</span><small>Expected 24 Jun</small></li>
+          </ul>
+          <p class="text-secondary small mb-0"><i class="bi bi-geo-alt"></i> Your package is currently at the local delivery hub in your city.</p>
+        </div>
+      </div>
+
+      <!-- ---- Order 2: Delivered, eligible for return/exchange ---- -->
+      <div class="card order-card shadow-sm p-3 mb-3">
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=150&h=150&fit=crop" alt="Loafers">
+          <div class="flex-grow-1">
+            <h6 class="mb-1">Casual Loafers</h6>
+            <p class="text-secondary small mb-1">Order #ZY10187 &nbsp;|&nbsp; Delivered on 14 Jun 2026</p>
+            <span class="status-badge status-delivered">Delivered</span>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#track2">
+              Track <i class="bi bi-chevron-down"></i>
+            </button>
+            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#returnModal"
+              data-product-name="Casual Loafers" data-order-id="ZY10187">
+              Return / Exchange
+            </button>
+          </div>
+        </div>
+
+        <div class="collapse mt-3" id="track2">
+          <hr>
+          <ul class="tracker">
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Ordered</span><small>10 Jun</small></li>
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Shipped</span><small>11 Jun</small></li>
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Out for Delivery</span><small>14 Jun</small></li>
+            <li class="done"><div class="dot"><i class="bi bi-check-lg"></i></div><span class="step-label">Delivered</span><small>14 Jun</small></li>
+          </ul>
+          <p class="text-secondary small mb-0">Eligible for return/exchange till <strong>21 Jun 2026</strong>.</p>
+        </div>
+      </div>
+
+      <!-- ---- Order 3: Cancelled ---- -->
+      <div class="card order-card shadow-sm p-3 mb-3">
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=150&h=150&fit=crop" alt="Perfume">
+          <div class="flex-grow-1">
+            <h6 class="mb-1">Luxury Perfume</h6>
+            <p class="text-secondary small mb-1">Order #ZY10052 &nbsp;|&nbsp; Cancelled on 5 Jun 2026</p>
+            <span class="status-badge status-cancelled">Cancelled</span>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm">Buy Again</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ RETURN / EXCHANGE MODAL ============ -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Return or Exchange</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Step 1: choose product (auto-filled) -->
+        <p class="mb-1 small text-secondary">Item</p>
+        <p class="fw-semibold mb-3" id="returnProductName">Casual Loafers</p>
+
+        <!-- Step 2: choose Return or Exchange -->
+        <p class="mb-2 small text-secondary">What would you like to do?</p>
+        <div class="return-options mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="returnType" id="optReturn" value="return" checked>
+            <label class="form-check-label w-100" for="optReturn">
+              <i class="bi bi-arrow-return-left me-2"></i>Return for refund
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="returnType" id="optExchange" value="exchange">
+            <label class="form-check-label w-100" for="optExchange">
+              <i class="bi bi-arrow-left-right me-2"></i>Exchange (size/color)
+            </label>
+          </div>
+        </div>
+
+        <!-- Step 3: reason -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Reason</label>
+          <select class="form-select" id="returnReason">
+            <option>Size doesn't fit</option>
+            <option>Product damaged / defective</option>
+            <option>Wrong item received</option>
+            <option>Not as described</option>
+            <option>Changed my mind</option>
+          </select>
+        </div>
+
+        <!-- Step 4: comments -->
+        <div class="mb-1">
+          <label class="form-label small fw-semibold">Additional comments (optional)</label>
+          <textarea class="form-control" rows="2" placeholder="Tell us more..."></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-place-order" id="submitReturnBtn">Submit Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast: confirms return/exchange submission -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="returnToast" class="toast align-items-center text-bg-success border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle me-2"></i><span id="toastMsg">Request submitted successfully!</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  /* =========================================================
+     CART LOGIC
+     - Increase / decrease quantity
+     - Remove item
+     - Recalculate the order summary on every change
+  ========================================================== */
+
+  function formatMoney(num){
+    return num.toLocaleString('en-IN');
+  }
+
+  // Recalculates subtotal/total by reading every remaining cart item
+  function recalcSummary(){
+    const items = document.querySelectorAll('#cartItemsWrapper .cart-item');
+    let subtotal = 0;
+
+    items.forEach(item => {
+      const price = parseFloat(item.dataset.price);
+      const qty = parseInt(item.dataset.qty);
+      subtotal += price * qty;
+    });
+
+    document.getElementById('summaryItemCount').textContent = items.length;
+    document.getElementById('summarySubtotal').textContent = formatMoney(subtotal);
+    document.getElementById('summaryTotal').textContent = formatMoney(subtotal);
+    document.getElementById('cartCountBadge').textContent = items.length;
+
+    // Show "empty cart" message if nothing is left
+    document.getElementById('emptyCartMsg').classList.toggle('d-none', items.length > 0);
+  }
+
+  // Attach click events to every cart item (quantity +/-, remove)
+  document.querySelectorAll('#cartItemsWrapper .cart-item').forEach(item => {
+
+    const qtyValueEl = item.querySelector('.qty-value');
+    const lineTotalEl = item.querySelector('.line-total');
+    const price = parseFloat(item.dataset.price);
+
+    item.querySelector('.qty-plus').addEventListener('click', () => {
+      let qty = parseInt(item.dataset.qty) + 1;
+      item.dataset.qty = qty;
+      qtyValueEl.value = qty;
+      lineTotalEl.textContent = formatMoney(price * qty);
+      recalcSummary();
+    });
+
+    item.querySelector('.qty-minus').addEventListener('click', () => {
+      let qty = parseInt(item.dataset.qty);
+      if (qty <= 1) return; // don't go below 1, use Remove instead
+      qty -= 1;
+      item.dataset.qty = qty;
+      qtyValueEl.value = qty;
+      lineTotalEl.textContent = formatMoney(price * qty);
+      recalcSummary();
+    });
+
+    item.querySelector('.btn-remove').addEventListener('click', () => {
+      item.remove();          // delete this card from the page
+      recalcSummary();        // update totals after removal
+    });
+  });
+
+
+  /* =========================================================
+     RETURN / EXCHANGE MODAL LOGIC
+     - When "Return / Exchange" is clicked on an order,
+       fill the modal with that product's name.
+  ========================================================== */
+  const returnModal = document.getElementById('returnModal');
+  returnModal.addEventListener('show.bs.modal', function (event) {
+    const triggerBtn = event.relatedTarget;
+    const productName = triggerBtn.getAttribute('data-product-name');
+    document.getElementById('returnProductName').textContent = productName;
+  });
+
+  // Fake-submit the return/exchange request (no PHP yet — just UI feedback)
+  document.getElementById('submitReturnBtn').addEventListener('click', function () {
+    const type = document.querySelector('input[name="returnType"]:checked').value;
+    const toastMsg = document.getElementById('toastMsg');
+    toastMsg.textContent = type === 'return'
+      ? 'Return request submitted successfully!'
+      : 'Exchange request submitted successfully!';
+
+    // Close the modal
+    bootstrap.Modal.getInstance(returnModal).hide();
+
+    // Show confirmation toast
+    const toast = new bootstrap.Toast(document.getElementById('returnToast'));
+    toast.show();
+  });
+</script>
+
+</body>
+</html>
